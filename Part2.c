@@ -85,15 +85,42 @@ int main() {
         scanf("%d %d %d", &registry[i]->dob.day, &registry[i]->dob.month, &registry[i]->dob.year);
         clearBuffer(); // Clear the input buffer to prevent fgets from skipping the next prompt
 
-        printf("Home City: ");
+        // --- FULL HOME ADDRESS ---
+        printf("\n[ Home Address ]\n");
+        printf("City: ");
         fgets(registry[i]->home.city, 50, stdin);
         registry[i]->home.city[strcspn(registry[i]->home.city, "\n")] = 0;
 
+        printf("Street: ");
+        fgets(registry[i]->home.street, 50, stdin);
+        registry[i]->home.street[strcspn(registry[i]->home.street, "\n")] = 0;
+
+        printf("Postal Code (e.g., MD-4580): ");
+        fgets(registry[i]->home.postCode, 20, stdin);
+        registry[i]->home.postCode[strcspn(registry[i]->home.postCode, "\n")] = 0;
+
+        // --- FULL WORK ADDRESS ---
+        printf("\n[ Work Address ]\n");
+        printf("City: ");
+        fgets(registry[i]->work.city, 50, stdin);
+        registry[i]->work.city[strcspn(registry[i]->work.city, "\n")] = 0;
+
+        printf("Street: ");
+        fgets(registry[i]->work.street, 50, stdin);
+        registry[i]->work.street[strcspn(registry[i]->work.street, "\n")] = 0;
+
+        printf("Postal Code: ");
+        fgets(registry[i]->work.postCode, 20, stdin);
+        registry[i]->work.postCode[strcspn(registry[i]->work.postCode, "\n")] = 0;
+
         // Write the structured raw data directly to the file stream
-        fprintf(expFile, "%s %s | Gender: %c | DOB: %02d/%02d/%04d | City: %s\n", 
+        fprintf(expFile, "%s %s | Gender: %c | DOB: %02d/%02d/%04d\n", 
                 registry[i]->name, registry[i]->surname, registry[i]->gender, 
-                registry[i]->dob.day, registry[i]->dob.month, registry[i]->dob.year, 
-                registry[i]->home.city);
+                registry[i]->dob.day, registry[i]->dob.month, registry[i]->dob.year);
+        fprintf(expFile, "   Home: %s, str. %s, %s\n", 
+                registry[i]->home.city, registry[i]->home.street, registry[i]->home.postCode);
+        fprintf(expFile, "   Work: %s, str. %s, %s\n\n", 
+                registry[i]->work.city, registry[i]->work.street, registry[i]->work.postCode);
     }
     fclose(expFile); // close the file to flush the stream and free OS resources
 
@@ -124,10 +151,10 @@ int main() {
     
     fprintf(outFile, "--- Processed Citizens (Sorted by Category Descending) ---\n");
     for (int i = 0; i < count; i++) {
-        fprintf(outFile, "Category: %d | Name: %s %s | Age: %d Y, %d M, %d D | Amount Paid: %.2f\n",
+        fprintf(outFile, "Cat: %d | %s %s | Age: %d Y, %d M, %d D | Paid: %.2f | Home: %s | Work: %s\n",
                 registry[i]->category, registry[i]->name, registry[i]->surname,
                 registry[i]->ageYears, registry[i]->ageMonths, registry[i]->ageDays,
-                registry[i]->amountPaid);
+                registry[i]->amountPaid, registry[i]->home.city, registry[i]->work.city);
     }
     fclose(outFile);
     printf("\nProcessed calculations saved to output.txt.\n");
@@ -163,6 +190,8 @@ Citizen** createCitizens(int count) {
 void displayCitizen(Citizen* c) {
     printf("Citizen: %s %s, Gender: %c, DOB: %02d/%02d/%04d\n", 
             c->name, c->surname, c->gender, c->dob.day, c->dob.month, c->dob.year);
+    printf("  Home: %s, %s, %s\n", c->home.city, c->home.street, c->home.postCode);
+    printf("  Work: %s, %s, %s\n", c->work.city, c->work.street, c->work.postCode);
 }
 
 // Calculates exact age and assigns category/payments based on the UDT data
