@@ -114,9 +114,3 @@ Linux/macOS:
 
 ## Verified Status
 Both programs compile successfully in the current workspace with GCC and produce their expected output files.
-
-## Suggested Improvements
-- Add null checks after every `malloc` and `realloc` call.
-- Validate all user numeric input (`count`, dates, step).
-- Prevent potential string overflow in concatenation-heavy operations.
-- Replace bubble sort with a more scalable algorithm if dataset size grows.
