@@ -2,3 +2,5 @@
 *.o
 input.txt
 output.txt
+experiment.txt
+result.txt
