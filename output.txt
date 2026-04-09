@@ -1,0 +1,5 @@
+Before changes:
+Eu sunt Ion. Sunt din satul Ustia. Invat la UTM
+
+After changes:
+Invat la UTM Sunt din satul Ustia. Eu sunt Ion.

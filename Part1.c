@@ -2,65 +2,80 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LEN     2048
-#define MAX_SENT    100
-#define MAX_SENT_LEN 512
+#define MAX_BUFFER 2048
 
-/* ---------------------------------------------------------------
-   Parse a text into individual sentences (split on '.', '!', '?')
-   Returns the number of sentences found.
---------------------------------------------------------------- */
-int parseSentences(const char *text, char sentences[][MAX_SENT_LEN]) {
-    int count = 0;
-    int i = 0;
-    char buf[MAX_SENT_LEN];
+/* Dynamically parses text into sentences and keeps the punctuation.
+   Returns an array of string pointers.
+*/
+char** parseSentences(char* text, int* count) {
+    int capacity = 10;
+    // Allocate memory for an array of pointers
+    char** sentences = (char**)malloc(capacity * sizeof(char*));
+    *count = 0;
 
-    while (*text && count < MAX_SENT) {
-        /* Skip leading spaces between sentences */
-        if (i == 0 && *text == ' ') {
-            text++;
+    char* start = text;
+    char* current = text;
+
+    while (*current != '\0') {
+        // Skip spaces at the beginning of a new sentence
+        if (start == current && *current == ' ') {
+            start++;
+            current++;
             continue;
         }
 
-        buf[i++] = *text;
+        // When we hit punctuation, extract the sentence
+        if (*current == '.' || *current == '!' || *current == '?') {
+            int len = current - start + 1; // +1 to include the punctuation
+            
+            // Dynamically allocate memory for this specific sentence
+            sentences[*count] = (char*)malloc((len + 1) * sizeof(char));
+            strncpy(sentences[*count], start, len);
+            sentences[*count][len] = '\0';
+            (*count)++;
 
-        /* End of sentence detected */
-        if (*text == '.' || *text == '!' || *text == '?') {
-            buf[i] = '\0';
-            strcpy(sentences[count++], buf);
-            i = 0;
+            // Expand array if we run out of pointer space
+            if (*count >= capacity) {
+                capacity *= 2;
+                sentences = (char**)realloc(sentences, capacity * sizeof(char*));
+            }
+            current++;
+            start = current;
+        } else {
+            current++;
         }
-        text++;
     }
 
-    /* Handle trailing text with no ending punctuation */
-    if (i > 0) {
-        buf[i] = '\0';
-        strcpy(sentences[count++], buf);
+    // Catch any leftover text that didn't end with punctuation
+    if (current > start) {
+        int len = current - start;
+        sentences[*count] = (char*)malloc((len + 1) * sizeof(char));
+        strncpy(sentences[*count], start, len);
+        sentences[*count][len] = '\0';
+        (*count)++;
     }
 
-    return count;
+    return sentences;
 }
 
-/* ---------------------------------------------------------------
-   Interchange sentence at index 0 with sentence at index (step-1)
---------------------------------------------------------------- */
-void interchangeSentences(char sentences[][MAX_SENT_LEN], int count, int step) {
+/* Interchanges sentences by swapping their pointers 
+   (much more efficient than copying text).
+*/
+void interchangeSentences(char** sentences, int count, int step) {
     if (step < 1 || step > count) {
-        printf("Error: step %d is out of range (1 to %d).\n", step, count);
+        printf("Error: Step %d is out of range. There are only %d sentences.\n", step, count);
         return;
     }
-
-    char temp[MAX_SENT_LEN];
-    strcpy(temp,               sentences[0]);
-    strcpy(sentences[0],       sentences[step - 1]);
-    strcpy(sentences[step - 1], temp);
+    
+    // Swap the pointers directly
+    char* temp = sentences[0];
+    sentences[0] = sentences[step - 1];
+    sentences[step - 1] = temp;
 }
 
-/* ---------------------------------------------------------------
-   Join sentences array back into a single string
---------------------------------------------------------------- */
-void joinSentences(char sentences[][MAX_SENT_LEN], int count, char *result) {
+/* Joins the dynamically allocated sentences into one string.
+*/
+void joinSentences(char** sentences, int count, char* result) {
     result[0] = '\0';
     for (int i = 0; i < count; i++) {
         if (i > 0) strcat(result, " ");
@@ -68,65 +83,68 @@ void joinSentences(char sentences[][MAX_SENT_LEN], int count, char *result) {
     }
 }
 
-/* ===============================================================
-   MAIN
-=============================================================== */
 int main(void) {
-    char inputStr[MAX_LEN];
-    char sentences[MAX_SENT][MAX_SENT_LEN];
-    char before[MAX_LEN], after[MAX_LEN];
-    int  step;
+    char inputBuffer[MAX_BUFFER];
+    char beforeStr[MAX_BUFFER];
+    char afterStr[MAX_BUFFER];
+    int step;
 
-    /* ---- Step 1: Read string from keyboard and write to input.txt ---- */
-    printf("Enter the string:\n> ");
-    fgets(inputStr, MAX_LEN, stdin);
-    inputStr[strcspn(inputStr, "\n")] = '\0'; /* remove trailing newline */
+    // 1. Read from keyboard and write to input.txt
+    printf("Introduce the string:\n> ");
+    fgets(inputBuffer, MAX_BUFFER, stdin);
+    inputBuffer[strcspn(inputBuffer, "\n")] = '\0'; 
 
-    FILE *fwrite = fopen("input.txt", "w");
-    if (!fwrite) {
-        perror("Cannot create input.txt");
+    FILE* fileOut = fopen("input.txt", "w");
+    if (!fileOut) {
+        perror("Failed to create input.txt");
         return 1;
     }
-    fprintf(fwrite, "%s", inputStr);
-    fclose(fwrite);
+    fprintf(fileOut, "%s", inputBuffer);
+    fclose(fileOut);
 
-    /* ---- Step 2: Re-read the string from input.txt ---- */
-    FILE *fread = fopen("input.txt", "r");
-    if (!fread) {
-        perror("Cannot open input.txt");
+    // 2. Read back from input.txt
+    FILE* fileIn = fopen("input.txt", "r");
+    if (!fileIn) {
+        perror("Failed to open input.txt");
         return 1;
     }
-    fgets(inputStr, MAX_LEN, fread);
-    fclose(fread);
+    fgets(inputBuffer, MAX_BUFFER, fileIn);
+    fclose(fileIn);
 
-    printf("\nInput string is:\n%s\n", inputStr);
+    printf("\nInput string is:\n%s\n", inputBuffer);
 
-    /* ---- Step 3: Read step from keyboard ---- */
+    // 3. Get the step
     printf("\nIntroduce your step of swaps: ");
     scanf("%d", &step);
 
-    /* ---- Step 4: Parse sentences ---- */
-    int count = parseSentences(inputStr, sentences);
-    printf("Sentences found: %d\n", count);
+    // 4. Parse sentences using dynamic memory
+    int count = 0;
+    char** sentences = parseSentences(inputBuffer, &count);
 
-    /* ---- Step 5: Build "before" string and display ---- */
-    joinSentences(sentences, count, before);
-    printf("\n--- Before changes ---\n%s\n", before);
+    // 5. Build and print the "before" string
+    joinSentences(sentences, count, beforeStr);
+    printf("\n--- Before changes ---\n%s\n", beforeStr);
 
-    /* ---- Step 6: Interchange and build "after" string ---- */
+    // 6. Swap and build the "after" string
     interchangeSentences(sentences, count, step);
-    joinSentences(sentences, count, after);
-    printf("\n--- After changes ---\n%s\n", after);
+    joinSentences(sentences, count, afterStr);
+    printf("\n--- After changes ---\n%s\n", afterStr);
 
-    /* ---- Step 7: Write results to output.txt ---- */
-    FILE *fout = fopen("output.txt", "w");
-    if (!fout) {
-        perror("Cannot create output.txt");
+    // 7. Write results to output.txt
+    FILE* finalOut = fopen("output.txt", "w");
+    if (!finalOut) {
+        perror("Failed to create output.txt");
         return 1;
     }
-    fprintf(fout, "Before changes:\n%s\n\nAfter changes:\n%s\n", before, after);
-    fclose(fout);
+    fprintf(finalOut, "Before changes:\n%s\n\nAfter changes:\n%s\n", beforeStr, afterStr);
+    fclose(finalOut);
+    printf("\nResults successfully saved to output.txt\n");
 
-    printf("\nResults saved to output.txt\n");
+    // 8. Free the dynamically allocated memory
+    for (int i = 0; i < count; i++) {
+        free(sentences[i]);
+    }
+    free(sentences);
+
     return 0;
 }
