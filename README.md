@@ -1,101 +1,122 @@
-# SDA Lab 5 - Task 26: Dynamic Sentence Manipulation
+# SDA Lab 5 - Task 26: Pointers, UDTs, and File I/O
 
 ## Overview
-This project is a procedural C implementation for a Data Structures and Algorithms (SDA) lab task.
-The program reads a line of text, splits it into sentences using dynamic memory, and swaps the first sentence with another sentence chosen by a 1-based index (called step in the program).
+This repository contains two procedural C programs for SDA Laboratory 5.
+Both parts emphasize dynamic memory management, pointer-based processing, and file stream operations.
 
-The solution focuses on:
-- dynamic allocation and deallocation of memory;
-- pointer-based sentence swapping for efficiency;
-- file input/output using input.txt and output.txt.
+- **Part 1** focuses on dynamic sentence parsing and pointer swapping.
+- **Part 2** focuses on nested User-Defined Types (UDTs), dynamic arrays of struct pointers, age/category computation, sorting, and file merging.
 
 ## Repository Structure
-- Part1.c - source code for the solution.
-- input.txt - stores the raw input string.
-- output.txt - stores text before and after sentence interchange.
-- README.md - project documentation.
+- `Part1.c` - Dynamic sentence manipulation.
+- `Part2.c` - Citizen registry and processing system.
+- `README.md` - Project documentation.
+- `.gitignore` - Ignores compiled artifacts and runtime text outputs.
 
-## Program Behavior
-The executable performs the following steps:
-1. Reads one line of text from standard input.
-2. Writes that line to input.txt.
-3. Reads the line back from input.txt.
-4. Reads an integer step from the user.
-5. Parses the text into separate sentences using ., !, and ? as delimiters.
-6. Prints the reconstructed text before changes.
-7. Swaps sentence 1 with sentence step (if step is valid).
-8. Prints the reconstructed text after changes.
-9. Writes both versions to output.txt.
-10. Frees all dynamically allocated memory.
+Generated at runtime (currently ignored by Git):
+- `input.txt`
+- `output.txt`
+- `experiment.txt`
+- `result.txt`
 
-## Implementation Analysis
+## Part 1: Dynamic Sentence Manipulation (`Part1.c`)
+
+### What It Does
+1. Reads one text line from standard input.
+2. Saves it to `input.txt`.
+3. Reads it back from `input.txt`.
+4. Splits text into sentences using `.`, `!`, `?` delimiters.
+5. Swaps sentence 1 with sentence `step` (1-based index).
+6. Prints text before and after changes.
+7. Saves both versions to `output.txt`.
+
+### Technical Highlights
+- Dynamic sentence storage with `char**`.
+- Uses `malloc`, `realloc`, and `free`.
+- O(1) pointer swap (no full-string copying during interchange).
+
 ### Core Functions
-- parseSentences(char* text, int* count)
-   - Dynamically builds an array of sentence pointers.
-   - Uses malloc for initial pointer storage and realloc for growth.
-   - Preserves punctuation by including delimiter characters in each sentence.
-
-- interchangeSentences(char** sentences, int count, int step)
-   - Validates step in range [1, count].
-   - Swaps pointers directly in O(1), avoiding string copies.
-
-- joinSentences(char** sentences, int count, char* result)
-   - Rebuilds a display/output string from sentence fragments.
-   - Inserts a space between adjacent sentences.
+- `parseSentences(char* text, int* count)`
+- `interchangeSentences(char** sentences, int count, int step)`
+- `joinSentences(char** sentences, int count, char* result)`
 
 ### Complexity
-- Parsing: O(n), where n is input length.
-- Swap operation: O(1).
-- Joining sentences for output: O(n) overall text traversal with repeated concatenation.
-- Extra memory: O(n) for sentence copies and pointer array.
+- Parsing: **O(n)**
+- Sentence swap: **O(1)**
+- Rebuild output string: **O(n)**
+- Additional memory: **O(n)**
+
+### Notes
+- `MAX_BUFFER` is 2048 characters.
+- If `step` is out of range, swap is skipped and an error is shown.
+- Trailing text without punctuation is treated as one sentence.
+
+## Part 2: Citizen Registry System (`Part2.c`)
+
+### What It Does
+1. Reads citizen records from keyboard.
+2. Stores raw entries into `experiment.txt`.
+3. Calculates age breakdown (years, months, days).
+4. Assigns category and payment amount by age.
+5. Sorts citizens by category in descending order.
+6. Saves processed data to `output.txt`.
+7. Merges `experiment.txt` + `output.txt` into `result.txt`.
+
+### UDT Design
+- `Date` (day, month, year)
+- `Address` (city, street, postCode)
+- `Citizen` (identity fields + nested UDTs + computed fields)
+
+### Pointer and Memory Model
+- Registry is allocated as `Citizen**`.
+- Each citizen record is allocated independently with `malloc`.
+- Sorting swaps pointers, not entire structs.
+- All allocated memory is released at the end.
+
+### Processing Rules
+- Category 1: age < 18, amount = 500.0
+- Category 2: 18 <= age < 65, amount = 1500.0
+- Category 3: age >= 65, amount = 2500.0
+
+### Complexity
+- Input and calculations: **O(n)**
+- Bubble sort by category: **O(n^2)**
+- Merge two files: **O(total file size)**
+- Additional memory: **O(n)** for pointer registry and citizens
+
+### Notes
+- Age day/month adjustment uses a simplified 30-day month approximation.
+- `home.city` is collected and written; other address fields exist in the UDT but are not yet fully populated in input flow.
 
 ## Build and Run
+
 ### Requirements
-- GCC (or another C compiler).
-- Terminal/console environment.
+- GCC (recommended) or another C compiler.
 
 ### Compile
 ```bash
 gcc Part1.c -o Part1
+gcc Part2.c -o Part2
 ```
 
-### Execute
-Windows (PowerShell or CMD):
+### Run
+Windows:
 ```bash
 .\Part1.exe
+.\Part2.exe
 ```
 
 Linux/macOS:
 ```bash
 ./Part1
+./Part2
 ```
 
-## Example
-Input text:
-Eu sunt Ion. Sunt din satul Ustia. Invat la UTM
+## Verified Status
+Both programs compile successfully in the current workspace with GCC and produce their expected output files.
 
-Step:
-3
-
-Before changes:
-Eu sunt Ion. Sunt din satul Ustia. Invat la UTM
-
-After changes:
-Invat la UTM Sunt din satul Ustia. Eu sunt Ion.
-
-## Notes and Edge Cases
-- Maximum input line length is controlled by MAX_BUFFER (2048).
-- Sentences are detected only by ., !, and ?.
-- If text ends without punctuation, the remaining text is treated as the final sentence.
-- If step is out of range, the program prints an error and keeps sentence order unchanged.
-
-## Quality Observations and Possible Improvements
-- The program correctly frees all allocated sentence memory.
-- Pointer swapping is efficient and avoids unnecessary copies.
-- Recommended improvements for production-level robustness:
-   - check malloc/realloc return values before use;
-   - guard against potential output buffer overflow when joining large sentence sets;
-   - support more advanced sentence tokenization rules.
-
-## Author
-SDA Lab 5 submission.
+## Suggested Improvements
+- Add null checks after every `malloc` and `realloc` call.
+- Validate all user numeric input (`count`, dates, step).
+- Prevent potential string overflow in concatenation-heavy operations.
+- Replace bubble sort with a more scalable algorithm if dataset size grows.
