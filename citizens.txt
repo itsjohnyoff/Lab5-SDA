@@ -1,0 +1,51 @@
+5
+John
+Smith
+m
+12 5 2000
+Chisinau
+Stefan cel Mare
+MD-2001
+Balti
+Independentei
+MD-3100
+Anna
+Brown
+f
+3 8 1985
+Cahul
+Mihai Eminescu
+MD-3901
+Chisinau
+Decebal
+MD-2043
+Michael
+Johnson
+m
+25 11 1972
+Orhei
+Vasile Lupu
+MD-3500
+Chisinau
+Alba Iulia
+MD-2060
+Elena
+Popescu
+f
+7 2 2008
+Soroca
+Ion Creanga
+MD-3001
+Soroca
+Independentei
+MD-3001
+Victor
+Ionescu
+m
+1 9 1955
+Balti
+Puskin
+MD-3102
+Balti
+Decebal
+MD-3100

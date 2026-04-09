@@ -1,0 +1,11 @@
+*.exe
+*.o
+input.txt
+output.txt
+experiment.txt
+result.txt
+*.pdf
+*.ps1
+template.txt
+loadlanguage.txt
+test_manual_input.txt
