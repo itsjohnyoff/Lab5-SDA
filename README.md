@@ -86,7 +86,7 @@ Generated at runtime (currently ignored by Git):
 
 ### Notes
 - Age day/month adjustment uses a simplified 30-day month approximation.
-- `home.city` is collected and written; other address fields exist in the UDT but are not yet fully populated in input flow.
+- All nested UDT fields (City, Street, Postal Code for both Home and Work addresses) are fully populated during the input flow and successfully saved to the experiment.txt file.
 
 ## Build and Run
 
