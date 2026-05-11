@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// --- User-Defined Types  --- 
-// UDTs allow to group related variables of different data types into a single logical unit.
+// User-defined types
+// These group related values into one meaningful unit.
 
 typedef struct {
     int day;
@@ -17,7 +17,8 @@ typedef struct {
     char postCode[20];
 } Address;
 
-// The main Citizen UDT bundles primitive types with other UDTs (Date, Address)
+// Main citizen record
+// It combines personal data, addresses, and the extra fields needed later.
 typedef struct {
     char name[50];
     char surname[50];
@@ -25,8 +26,8 @@ typedef struct {
     char gender;
     Address home;
     Address work;
-    
-    // Additional fields required for calculation and sorting operations
+
+    // These fields are filled after the age is calculated
     int ageYears;
     int ageMonths;
     int ageDays;
@@ -34,7 +35,7 @@ typedef struct {
     float amountPaid;
 } Citizen;
 
-/* --- Function Prototypes --- */
+/* Function prototypes */
 void clearBuffer();
 Citizen** createCitizens(int count);
 void inputCitizensManually(Citizen** registry, int count);
@@ -44,8 +45,7 @@ void displayCitizen(Citizen* c);
 void sortCitizensByCategory(Citizen** registry, int count);
 void mergeFiles(const char* file1, const char* file2, const char* fileOut);
 
-// Reads a line, trims newline, and skips empty lines.
-// Returns 1 on success, 0 on EOF/failure.
+// Reads one line from a file, removes the newline, and skips empty lines.
 static int readNonEmptyLine(FILE* file, char* out, size_t outSize);
 
 int main() {
@@ -61,14 +61,14 @@ int main() {
     scanf("%d", &choice);
     clearBuffer();
 
-    // Dispatch based on user choice
+    // Choose how the citizens will be entered
     if (choice == 1) {
         // Manual input mode
         printf("\nEnter the number of citizens to register: ");
         scanf("%d", &count);
         clearBuffer();
 
-        // Allocate memory for registry
+        // Create the array of citizen pointers
         registry = createCitizens(count);
         inputCitizensManually(registry, count);
     } else if (choice == 2) {
@@ -76,7 +76,7 @@ int main() {
         char filename[100];
         printf("\nEnter filename: ");
         fgets(filename, 100, stdin);
-        filename[strcspn(filename, "\n")] = 0; // Remove newline
+        filename[strcspn(filename, "\n")] = 0; // Remove the trailing newline
 
         registry = loadCitizensFromFile(filename, &count);
         if (registry == NULL) {
@@ -88,50 +88,50 @@ int main() {
         return 1;
     }
 
-    // --- Open experiment.txt using FILE type ---
-    FILE* expFile = fopen("experiment.txt", "w"); // "w" mode creates/overwrites the file
+    // Create experiment.txt and save the raw citizen data there
+    FILE* expFile = fopen("experiment.txt", "w");
     if (!expFile) {
         perror("Could not create experiment.txt");
         return 1;
     }
 
-    // Write all citizens to experiment.txt
+    // Write every citizen to the experiment file
     for (int i = 0; i < count; i++) {
-        fprintf(expFile, "%s %s | Gender: %c | DOB: %02d/%02d/%04d\n", 
-                registry[i]->name, registry[i]->surname, registry[i]->gender, 
+        fprintf(expFile, "%s %s | Gender: %c | DOB: %02d/%02d/%04d\n",
+                registry[i]->name, registry[i]->surname, registry[i]->gender,
                 registry[i]->dob.day, registry[i]->dob.month, registry[i]->dob.year);
-        fprintf(expFile, "   Home: %s, str. %s, %s\n", 
+        fprintf(expFile, "   Home: %s, str. %s, %s\n",
                 registry[i]->home.city, registry[i]->home.street, registry[i]->home.postCode);
-        fprintf(expFile, "   Work: %s, str. %s, %s\n\n", 
+        fprintf(expFile, "   Work: %s, str. %s, %s\n\n",
                 registry[i]->work.city, registry[i]->work.street, registry[i]->work.postCode);
     }
-    fclose(expFile); // close the file to flush the stream and free OS resources
+    fclose(expFile);
 
-    // --- Display entered data ---
+    // Show what was saved in the first file
     printf("\n=== Data Saved to experiment.txt ===\n");
     for (int i = 0; i < count; i++) {
         displayCitizen(registry[i]);
     }
 
-    // --- Data Processing (Age, Category, Amount Paid) ---
+    // Ask for the current date so age can be calculated
     printf("\nEnter the CURRENT DATE (DD MM YYYY) to calculate ages and amounts: ");
     scanf("%d %d %d", &currentDate.day, &currentDate.month, &currentDate.year);
 
     for (int i = 0; i < count; i++) {
-        // Pass the pointer to the struct so the function can modify the original memory block
+        // The function updates the same citizen structure directly
         calculateAgeAndCategory(registry[i], currentDate);
     }
 
-    // --- Sort descending by category using pointers ---
+    // Sort citizens by category, highest first
     sortCitizensByCategory(registry, count);
 
-    // --- Write processed calculations to output.txt ---
+    // Save the processed result into output.txt
     FILE* outFile = fopen("output.txt", "w");
     if (!outFile) {
         perror("Could not create output.txt");
         return 1;
     }
-    
+
     fprintf(outFile, "--- Processed Citizens (Sorted by Category Descending) ---\n");
     for (int i = 0; i < count; i++) {
         fprintf(outFile, "Cat: %d | %s %s | Age: %d Y, %d M, %d D | Paid: %.2f | Home: %s | Work: %s\n",
@@ -142,46 +142,44 @@ int main() {
     fclose(outFile);
     printf("\nProcessed calculations saved to output.txt.\n");
 
-    // --- Merge files ---
+    // Merge the two files into one final result file
     mergeFiles("experiment.txt", "output.txt", "result.txt");
     printf("Merged experiment.txt and output.txt into result.txt.\n");
 
-    // --- Memory Cleanup to prevent Memory Leaks ---
-    // First, free the memory block allocated for each individual citizen
+    // Free every citizen first, then free the pointer array
     for (int i = 0; i < count; i++) {
         free(registry[i]);
     }
-    // Last, free the main array of pointers
     free(registry);
 
     return 0;
 }
 
-/* --- Function Implementations --- */
+/* Function implementations */
 
-// Clears the standard input buffer to prevent skipped fgets reads
+// Clears the remaining characters from the input buffer
 void clearBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF) { }
 }
 
-// Dynamically allocates an array of pointers to Citizen structs
+// Creates the array that stores citizen pointers
 Citizen** createCitizens(int count) {
     return (Citizen**)malloc(count * sizeof(Citizen*));
 }
 
-// Reads citizens from keyboard input
+// Reads citizens one by one from the keyboard
 void inputCitizensManually(Citizen** registry, int count) {
     for (int i = 0; i < count; i++) {
-        // Allocate memory for each individual citizen struct
+        // Allocate memory for one citizen
         registry[i] = (Citizen*)malloc(sizeof(Citizen));
-        
+
         printf("\n--- Entering data for Citizen %d ---\n", i + 1);
-        
-        // Using fgets instead of scanf for strings to safely handle spaces in names/cities
+
+        // fgets is used here because it allows spaces in names and addresses
         printf("Name: ");
         fgets(registry[i]->name, 50, stdin);
-        registry[i]->name[strcspn(registry[i]->name, "\n")] = 0; // Strip newline character
+        registry[i]->name[strcspn(registry[i]->name, "\n")] = 0;
 
         printf("Surname: ");
         fgets(registry[i]->surname, 50, stdin);
@@ -189,12 +187,12 @@ void inputCitizensManually(Citizen** registry, int count) {
 
         printf("Gender (m/f): ");
         scanf("%c", &registry[i]->gender);
-        
+
         printf("Date of Birth (DD MM YYYY): ");
         scanf("%d %d %d", &registry[i]->dob.day, &registry[i]->dob.month, &registry[i]->dob.year);
-        clearBuffer(); // Clear input buffer to prevent fgets from skipping
+        clearBuffer();
 
-        // --- FULL HOME ADDRESS ---
+        // Home address
         printf("\n[ Home Address ]\n");
         printf("City: ");
         fgets(registry[i]->home.city, 50, stdin);
@@ -208,7 +206,7 @@ void inputCitizensManually(Citizen** registry, int count) {
         fgets(registry[i]->home.postCode, 20, stdin);
         registry[i]->home.postCode[strcspn(registry[i]->home.postCode, "\n")] = 0;
 
-        // --- FULL WORK ADDRESS ---
+        // Work address
         printf("\n[ Work Address ]\n");
         printf("City: ");
         fgets(registry[i]->work.city, 50, stdin);
@@ -234,17 +232,17 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
 
     *count = 0;
 
-    // Small helper buffer used for line reads
+    // Temporary buffer for reading lines
     char buffer[128];
 
-    // Read the number of citizens from the first line
+    // The first non-empty line contains the number of citizens
     if (!readNonEmptyLine(file, buffer, sizeof(buffer)) || sscanf(buffer, "%d", count) != 1 || *count <= 0) {
         printf("Error reading citizen count from file.\n");
         fclose(file);
         return NULL;
     }
 
-    // Allocate memory for the registry
+    // Create the registry
     Citizen** registry = createCitizens(*count);
     if (registry == NULL) {
         printf("Memory allocation failed.\n");
@@ -252,7 +250,7 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
         return NULL;
     }
 
-    // Initialize pointers in case we need to clean up early
+    // Set pointers to NULL in case something fails later
     for (int i = 0; i < *count; i++) {
         registry[i] = NULL;
     }
@@ -270,7 +268,7 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
             return NULL;
         }
 
-        // Read citizen fields line-by-line (skipping empty lines)
+        // Basic data
         if (!readNonEmptyLine(file, registry[i]->name, sizeof(registry[i]->name)) ||
             !readNonEmptyLine(file, registry[i]->surname, sizeof(registry[i]->surname)) ||
             !readNonEmptyLine(file, buffer, sizeof(buffer))) {
@@ -285,7 +283,7 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
 
         registry[i]->gender = buffer[0];
 
-        // Read DOB as a full line then parse numbers
+        // Date of birth
         if (!readNonEmptyLine(file, buffer, sizeof(buffer)) ||
             sscanf(buffer, "%d %d %d", &registry[i]->dob.day, &registry[i]->dob.month, &registry[i]->dob.year) != 3) {
             printf("Error reading citizen %d date of birth.\n", i + 1);
@@ -297,7 +295,7 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
             return NULL;
         }
 
-        // Home address
+        // Addresses
         if (!readNonEmptyLine(file, registry[i]->home.city, sizeof(registry[i]->home.city)) ||
             !readNonEmptyLine(file, registry[i]->home.street, sizeof(registry[i]->home.street)) ||
             !readNonEmptyLine(file, registry[i]->home.postCode, sizeof(registry[i]->home.postCode)) ||
@@ -319,25 +317,27 @@ Citizen** loadCitizensFromFile(const char* filename, int* count) {
     return registry;
 }
 
+// Reads a line and ignores empty ones
 static int readNonEmptyLine(FILE* file, char* out, size_t outSize) {
     while (fgets(out, (int)outSize, file)) {
         out[strcspn(out, "\n")] = 0;
         if (out[0] != '\0') {
             return 1;
         }
-        // Empty line, keep reading
+        // If the line is empty, keep reading
     }
     return 0;
 }
 
+// Prints one citizen in a readable form
 void displayCitizen(Citizen* c) {
-    printf("Citizen: %s %s, Gender: %c, DOB: %02d/%02d/%04d\n", 
-            c->name, c->surname, c->gender, c->dob.day, c->dob.month, c->dob.year);
+    printf("Citizen: %s %s, Gender: %c, DOB: %02d/%02d/%04d\n",
+           c->name, c->surname, c->gender, c->dob.day, c->dob.month, c->dob.year);
     printf("  Home: %s, %s, %s\n", c->home.city, c->home.street, c->home.postCode);
     printf("  Work: %s, %s, %s\n\n", c->work.city, c->work.street, c->work.postCode);
 }
 
-// Calculates exact age and assigns category/payments based on the UDT data
+// Calculates age and assigns category and payment
 void calculateAgeAndCategory(Citizen* c, Date current) {
     c->ageDays = current.day - c->dob.day;
     c->ageMonths = current.month - c->dob.month;
@@ -345,37 +345,36 @@ void calculateAgeAndCategory(Citizen* c, Date current) {
 
     if (c->ageDays < 0) {
         c->ageMonths--;
-        c->ageDays += 30; // Approximation for simplicity
+        c->ageDays += 30; // Simple month approximation
     }
     if (c->ageMonths < 0) {
         c->ageYears--;
         c->ageMonths += 12;
     }
 
-    // Logic implementation for category grouping
+    // Category rules
     if (c->ageYears < 18) {
-        c->category = 1; // Minor
+        c->category = 1;
         c->amountPaid = 500.0;
     } else if (c->ageYears >= 18 && c->ageYears < 65) {
-        c->category = 2; // Adult
+        c->category = 2;
         c->amountPaid = 1500.0;
     } else {
-        c->category = 3; // Senior
+        c->category = 3;
         c->amountPaid = 2500.0;
     }
 }
 
-/* * Function: sortCitizensByCategory
- * Sorts the array of pointers using Bubble Sort (descending order).
- * Instead of copying and swapping heavy UDT structs in
- * memory, it only swaps the memory addresses (pointers)
- * in the array. This provides an O(1) swap complexity.
+/*
+ * sortCitizensByCategory
+ * Sorts the citizens in descending order by category.
+ * Only the pointers are swapped, so the actual citizen data stays in place.
  */
 void sortCitizensByCategory(Citizen** registry, int count) {
     for (int i = 0; i < count - 1; i++) {
         for (int j = 0; j < count - i - 1; j++) {
             if (registry[j]->category < registry[j + 1]->category) {
-                // Swap the pointers, not the data
+                // Swap pointer addresses, not full records
                 Citizen* temp = registry[j];
                 registry[j] = registry[j + 1];
                 registry[j + 1] = temp;
@@ -384,7 +383,7 @@ void sortCitizensByCategory(Citizen** registry, int count) {
     }
 }
 
-// Opens multiple file streams simultaneously to read from two and write to a third
+// Merges the content of two files into one output file
 void mergeFiles(const char* file1, const char* file2, const char* fileOut) {
     FILE *f1 = fopen(file1, "r");
     FILE *f2 = fopen(file2, "r");
@@ -397,7 +396,6 @@ void mergeFiles(const char* file1, const char* file2, const char* fileOut) {
     }
 
     fprintf(fOut, "=== DATA FROM EXPERIMENT.TXT ===\n");
-    // Read line by line until EOF
     while (fgets(buffer, sizeof(buffer), f1)) {
         fputs(buffer, fOut);
     }
@@ -407,7 +405,6 @@ void mergeFiles(const char* file1, const char* file2, const char* fileOut) {
         fputs(buffer, fOut);
     }
 
-    // Close all file pointers to prevent data corruption
     fclose(f1);
     fclose(f2);
     fclose(fOut);
