@@ -4,165 +4,213 @@
 
 #define MAX_BUFFER 2048
 
-/* Function parseSentences
-   Dynamically parses a block of text into individual sentences.
-   Returns dynamically allocated array of string pointers (char**).
-*/
+/* Splits the text into separate sentences using dynamic memory */
 char** parseSentences(char* text, int* count) {
-    int capacity = 10; 
-    
-    // Allocate initial memory for an array of 10 pointers
+    int capacity = 10;
+
+    // Allocate memory for 10 sentence pointers
     char** sentences = (char**)malloc(capacity * sizeof(char*));
+
+    // At the beginning there are no sentences
     *count = 0;
 
-    // Use two pointers to track the beginning and current position of a sentence
+    // start marks where a sentence begins
+    // current moves through the text character by character
     char* start = text;
     char* current = text;
 
+    // Continue until end of string
     while (*current != '\0') {
-        // Skip any leading spaces at the start of a new sentence
+
+        // Skip spaces before a sentence
         if (start == current && *current == ' ') {
             start++;
             current++;
             continue;
         }
 
-        // Check for end of sentence punctuation
+        // Detect end of sentence
         if (*current == '.' || *current == '!' || *current == '?') {
-            // Calculate exact length using pointer arithmetic (+1 to include the punctuation mark)
-            int len = current - start + 1; 
-            
-            // Dynamically allocate memory for this specific sentence (+1 for the null terminator)
+
+            // Calculate sentence length
+            int len = current - start + 1;
+
+            // Allocate memory for the sentence
             sentences[*count] = (char*)malloc((len + 1) * sizeof(char));
-            
-            // Copy the extracted sentence into the allocated memory
+
+            // Copy sentence into allocated memory
             strncpy(sentences[*count], start, len);
-            sentences[*count][len] = '\0'; // Ensure the string is properly terminated
+
+            // Add end of string character
+            sentences[*count][len] = '\0';
+
+            // Increase sentence count
             (*count)++;
 
-            // If we exceed our pointer array capacity, double the size using realloc
+            // Increase memory size if needed
             if (*count >= capacity) {
                 capacity *= 2;
-                sentences = (char**)realloc(sentences, capacity * sizeof(char*));
+
+                sentences = (char**)realloc(sentences,
+                                         capacity * sizeof(char*));
             }
-            
-            // Move pointers forward to start scanning the next sentence
+
+            // Move to next sentence
             current++;
             start = current;
         } else {
+
+            // Continue scanning text
             current++;
         }
     }
 
-    // special case that matches any leftover text at the end that didn't have punctuation
+    // Handles text without punctuation at the end
     if (current > start) {
         int len = current - start;
+
         sentences[*count] = (char*)malloc((len + 1) * sizeof(char));
+
         strncpy(sentences[*count], start, len);
+
         sentences[*count][len] = '\0';
+
         (*count)++;
     }
 
     return sentences;
 }
 
-/* Function interchangeSentences
-   Swaps two sentences based on the user's step index.
-   This swaps memory addresses instead of copying strings for O(1) efficiency.
-*/
+/* Swaps the first sentence with the sentence selected by the user */
 void interchangeSentences(char** sentences, int count, int step) {
-    // Validate the user input to prevent out-of-bounds array access
+
+    // Check if entered step is valid
     if (step < 1 || step > count) {
-        printf("Error: Step %d is out of range. There are only %d sentences.\n", step, count);
+        printf("Error: Step %d is out of range. There are only %d sentences.\n",
+               step, count);
+
         return;
     }
-    
-    // Swap the pointers directly using a temporary pointer
-    // much faster and uses less memory than copying the actual text characters
+
+    // Save first sentence temporarily
     char* temp = sentences[0];
+
+    // Put selected sentence first
     sentences[0] = sentences[step - 1];
+
+    // Put original first sentence in selected position
     sentences[step - 1] = temp;
 }
 
-/* Function joinSentences
-   Reassembles the dynamically allocated array of sentences back into a single string.
-*/
+/* Joins all sentences back into one text */
 void joinSentences(char** sentences, int count, char* result) {
-    result[0] = '\0'; // Initialize as an empty string
-    
+
+    // Start with empty string
+    result[0] = '\0';
+
     for (int i = 0; i < count; i++) {
+
+        // Add spaces only between sentences
         if (i > 0) {
-            strcat(result, " "); // Add a space between sentences
+            strcat(result, " ");
         }
-        strcat(result, sentences[i]); // Append the sentence
+
+        // Append current sentence
+        strcat(result, sentences[i]);
     }
 }
 
 int main(void) {
+
     char inputBuffer[MAX_BUFFER];
     char beforeStr[MAX_BUFFER];
     char afterStr[MAX_BUFFER];
+
     int step;
 
-    // --- Step 1: Read input from keyboard ---
+    // Read text from keyboard
     printf("Introduce the string:\n> ");
-    fgets(inputBuffer, MAX_BUFFER, stdin);
-    inputBuffer[strcspn(inputBuffer, "\n")] = '\0'; // Strip the trailing newline left by fgets
 
-    // --- Step 2: Write standard input to input.txt ---
+    fgets(inputBuffer, MAX_BUFFER, stdin);
+
+    // Remove newline left by fgets
+    inputBuffer[strcspn(inputBuffer, "\n")] = '\0';
+
+    // Create input.txt and write text into it
     FILE* fileOut = fopen("input.txt", "w");
+
     if (!fileOut) {
         perror("Failed to create input.txt");
+
         return 1;
     }
+
     fprintf(fileOut, "%s", inputBuffer);
+
     fclose(fileOut);
 
-    // --- Step 3: Read data back from input.txt ---
+    // Open input.txt for reading
     FILE* fileIn = fopen("input.txt", "r");
+
     if (!fileIn) {
         perror("Failed to open input.txt");
+
         return 1;
     }
+
+    // Read text back from file
     fgets(inputBuffer, MAX_BUFFER, fileIn);
+
     fclose(fileIn);
 
     printf("\nInput string is:\n%s\n", inputBuffer);
 
-    // --- Step 4: Get swap index from user ---
+    // Ask user which sentence will be swapped
     printf("\nIntroduce your step of swaps: ");
+
     scanf("%d", &step);
 
-    // --- Step 5: Process data using dynamic memory ---
     int count = 0;
-    // sentences is a double pointer holding our array of string addresses
-    char** sentences = parseSentences(inputBuffer, &count); 
 
-    // --- Step 6: Build and display the original text ---
+    // Split text into separate sentences
+    char** sentences = parseSentences(inputBuffer, &count);
+
+    // Build original text
     joinSentences(sentences, count, beforeStr);
-    printf("\n--- Before changes ---\n%s\n", beforeStr);
 
-    // --- Step 7: Perform pointer swap and display updated text ---
+    printf("\nBefore changes:\n%s\n", beforeStr);
+
+    // Swap first sentence with selected sentence
     interchangeSentences(sentences, count, step);
-    joinSentences(sentences, count, afterStr);
-    printf("\n--- After changes ---\n%s\n", afterStr);
 
-    // --- Step 8: Save final results to output.txt ---
+    // Build modified text
+    joinSentences(sentences, count, afterStr);
+
+    printf("\nAfter changes:\n%s\n", afterStr);
+
+    // Save results into output.txt
     FILE* finalOut = fopen("output.txt", "w");
+
     if (!finalOut) {
         perror("Failed to create output.txt");
+
         return 1;
     }
-    fprintf(finalOut, "Before changes:\n%s\n\nAfter changes:\n%s\n", beforeStr, afterStr);
+
+    fprintf(finalOut,
+            "Before changes:\n%s\n\nAfter changes:\n%s\n",
+            beforeStr, afterStr);
+
     fclose(finalOut);
+
     printf("\nResults saved to output.txt\n");
 
-    // --- Step 9: Clean up dynamically allocated memory ---
-    // free each individual sentence first, then free the main pointer array
-    // This prevents memory leaks
+    // Free memory for each sentence
     for (int i = 0; i < count; i++) {
         free(sentences[i]);
     }
+
+    // Free main pointer array
     free(sentences);
 
     return 0;
